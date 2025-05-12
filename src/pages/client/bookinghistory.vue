@@ -25,23 +25,15 @@
               <tr v-else-if="orders.length === 0">
                 <td colspan="4">Không có dữ liệu đặt món.</td>
               </tr>
-              <!-- <tr v-else v-for="item in orders" :key="item.id">
-                <td>{{ formatDateTime(item.booking.timeBooking) }}</td>
+              <tr v-else v-for="(item, index) in orders" :key="index">
+                <td>{{ formatDateTime(item.timeBooking) }}</td>
                 <td>{{ item.foodName }}</td>
                 <td>{{ item.quantity }}</td>
                 <td>
-                  <button class="action-btn delete-btn" @click="deleteOrder(item.id)">Xoá</button>
-                  
+                  <button class="action-btn delete-btn" @click="deleteOrder(index)">Xoá</button>
+                  <button class="action-btn update-btn" @click="updateOrder(item, index)">Update</button>
                 </td>
-              </tr> -->
-              <tr v-else v-for="(item, index) in orders" :key="index">
-  <td>{{ formatDateTime(item.timeBooking) }}</td>
-  <td>{{ item.foodName }}</td>
-  <td>{{ item.quantity }}</td>
-  <td>
-    <button class="action-btn delete-btn" @click="deleteOrder(index)">Xoá</button>
-  </td>
-</tr>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -83,6 +75,20 @@ const deleteOrder = (index) => {
   }
 };
 
+const updateOrder = (item, index) => {
+  // Gửi yêu cầu cập nhật từ frontend tới backend
+  const updatedItem = { ...item, quantity: item.quantity + 1 };  // Ví dụ, tăng số lượng món ăn
+  api.put(`/admin/bookings/${item.id}`, updatedItem)
+    .then(response => {
+      alert('Cập nhật thành công!');
+      orders.value[index] = { ...response.data.booking };  // Cập nhật dữ liệu sau khi nhận phản hồi từ server
+    })
+    .catch(error => {
+      console.error('Lỗi khi cập nhật:', error);
+      alert('Cập nhật thất bại');
+    });
+};
+
 const getFoods = async () => {
   try {
     const res = await api.get('/client/foods');
@@ -96,10 +102,10 @@ onMounted(async () => {
   await getFoods();
   const stored = JSON.parse(localStorage.getItem('bookings')) || [];
 
-  // Map tên món vào mỗi item
   orders.value = stored.map((item) => {
     const food = foods.value.find(f => f.id === item.booking_food.id_food);
     return {
+      id: item.id,
       timeBooking: item.timeBooking,
       foodName: food ? food.name : 'Không tìm thấy',
       quantity: item.booking_food.quantity
@@ -107,6 +113,7 @@ onMounted(async () => {
   });
 });
 </script>
+
 
 
 
@@ -201,6 +208,10 @@ onMounted(async () => {
   
   .delete-btn {
     background: #dc3545;
+    color: white;
+  }
+  .update-btn {
+    background: green;
     color: white;
   }
   

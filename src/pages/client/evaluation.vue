@@ -1,7 +1,9 @@
 <template>
   <div class="app-wrapper">
+    
     <div class="app-container">
-      <header>
+      <div class="col-left">
+        <header>
         <h1>Restaurant Reviews</h1>
         <p>Share your experience by submitting a review with photos!</p>
       </header>
@@ -119,168 +121,201 @@
       <footer>
         <small>© 2025 Restaurant Reviews</small>
       </footer>
+      </div>
+   
+    
+      <div class="col-right">
+        <div class="map">
+            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3833.663132104762!2d108.15967391020955!3d16.082961439006894!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x314218c30c993543%3A0xec01cc42d8352cff!2zNTIgR2nDoXAgVsSDbiBDxrDGoW5nLCBIb8OgIE1pbmgsIExpw6puIENoaeG7g3UsIMSQw6AgTuG6tW5nIDU1MDAwMCwgVmnhu4d0IE5hbQ!5e0!3m2!1svi!2s!4v1747078025558!5m2!1svi!2s" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
-<script>
-import { reactive } from "vue";
+<script setup>
+import { ref, reactive, computed, onMounted } from "vue";
 import api from "../../services/api";
 
-export default {
-  data() {
-    return {
-      formEvaluation: {
-        id_food: "",
-        detail: "",
-        id_customer: "",  // Thêm id_customer vào đây
-      },
-      rating: 0,
-      photoFiles: [],
-      photoPreviews: [],
-      reviews: [],
-      foodList: [
-        { id: 1, name: 'Cơm Gà', image: 'imageicon/phefood.png' },
-        { id: 2, name: 'Bánh Mì', image: 'imageicon/phefood.png' },
-        { id: 3, name: 'Phở', image: 'imageicon/phefood.png' },
-      ],
-      editingReview: null,
-      isDropdownOpen: false,
+// Dữ liệu form đánh giá
+const formEvaluation = reactive({
+  id_food: "",
+  detail: "",
+  id_customer: "", // id khách hàng
+});
+
+const rating = ref(0);
+const photoFiles = ref([]);
+const photoPreviews = ref([]);
+const reviews = ref([]);
+const editingReview = ref(null);
+const isDropdownOpen = ref(false);
+
+// Danh sách món ăn mẫu
+const foodList = [
+  { id: 1, name: 'Cơm Gà', image: 'imageicon/phefood.png' },
+  { id: 2, name: 'Bánh Mì', image: 'imageicon/phefood.png' },
+  { id: 3, name: 'Phở', image: 'imageicon/phefood.png' },
+];
+
+// Computed
+const canSubmit = computed(() => {
+  return rating.value > 0 && formEvaluation.detail.trim().length > 0;
+});
+
+const isEditing = computed(() => editingReview.value !== null);
+
+const selectedFood = computed(() => {
+  return foodList.find((f) => f.id === formEvaluation.id_food) || null;
+});
+
+// Methods
+function toggleDropdown() {
+  isDropdownOpen.value = !isDropdownOpen.value;
+}
+
+function selectFood(food) {
+  formEvaluation.id_food = food.id;
+  isDropdownOpen.value = false;
+}
+
+function handleFileChange(event) {
+  const files = Array.from(event.target.files);
+  for (const file of files) {
+    if (!file.type.startsWith("image/")) continue;
+    photoFiles.value.push(file);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      photoPreviews.value.push(e.target.result);
     };
-  },
-  computed: {
-    canSubmit() {
-      return this.rating > 0 && this.formEvaluation.detail.trim().length > 0;
-    },
-    isEditing() {
-      return this.editingReview !== null;
-    },
-    selectedFood() {
-      return this.foodList.find((f) => f.id === this.formEvaluation.id_food) || null;
-    },
-  },
-  methods: {
-    toggleDropdown() {
-      this.isDropdownOpen = !this.isDropdownOpen;
-    },
-    selectFood(food) {
-      this.formEvaluation.id_food = food.id;
-      this.isDropdownOpen = false;
-    },
-    handleFileChange(event) {
-      const files = Array.from(event.target.files);
-      for (const file of files) {
-        if (!file.type.startsWith("image/")) continue;
-        this.photoFiles.push(file);
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          this.photoPreviews.push(e.target.result);
+    reader.readAsDataURL(file);
+  }
+  event.target.value = null;
+}
+
+function removePhoto(index) {
+  photoFiles.value.splice(index, 1);
+  photoPreviews.value.splice(index, 1);
+}
+
+function submitReview() {
+  if (!canSubmit.value) return;
+
+  const formData = new FormData();
+  formData.append("id_food", formEvaluation.id_food);
+  formData.append("star", rating.value);
+  formData.append("detail", formEvaluation.detail);
+  formData.append("id_customer", formEvaluation.id_customer);
+
+  photoFiles.value.forEach((file) => {
+    formData.append("photos[]", file);
+  });
+
+  if (isEditing.value) {
+    formData.append("_method", "PUT");
+    api
+      .post(`/client/rates/update/${editingReview.value.id}`, formData)
+      .then((response) => {
+        const updatedReview = {
+          id: editingReview.value.id,
+          rating: rating.value,
+          detail: formEvaluation.detail,
+          photos: photoPreviews.value,
+          date: new Date().toISOString(),
+          id_food: formEvaluation.id_food,
+          id_customer: formEvaluation.id_customer,
         };
-        reader.readAsDataURL(file);
-      }
-      event.target.value = null;
-    },
-    removePhoto(index) {
-      this.photoFiles.splice(index, 1);
-      this.photoPreviews.splice(index, 1);
-    },
-    submitReview() {
-      if (!this.canSubmit) return;
-
-      const formData = new FormData();
-      formData.append("id_food", this.formEvaluation.id_food);
-      formData.append("star", this.rating);
-      formData.append("detail", this.formEvaluation.detail);
-      formData.append("id_customer", this.formEvaluation.id_customer); // Gửi id_customer
-
-      this.photoFiles.forEach((file) => {
-        formData.append("photos[]", file);
+        const index = reviews.value.findIndex((r) => r.id === editingReview.value.id);
+        reviews.value.splice(index, 1, updatedReview);
+        saveReviewsToLocalStorage();
+        resetForm();
+      })
+      .catch((error) => {
+        console.error("Lỗi khi cập nhật đánh giá:", error);
       });
-
-      if (this.isEditing) {
-        // Cập nhật đánh giá
-        formData.append("_method", "PUT");
-        api
-        .post(`/client/rates/update/${this.editingReview.id}`, formData)
-          .then((response) => {
-            const updatedReview = {
-              id: this.editingReview.id,
-              rating: this.rating,
-              detail: this.formEvaluation.detail,
-              photos: this.photoPreviews,
-              date: new Date().toISOString(),
-            };
-
-            // Cập nhật danh sách đánh giá
-            const index = this.reviews.findIndex((r) => r.id === this.editingReview.id);
-            this.reviews.splice(index, 1, updatedReview);
-
-            this.resetForm();
-          })
-          .catch((error) => {
-            console.error("Lỗi khi cập nhật đánh giá:", error);
-          });
-      } else {
-        // Gửi đánh giá mới
-        api
-          .post("/client/rates/create", formData)
-          .then((response) => {
-            const newReview = {
-              id: response.data.data.id,
-              rating: this.rating,
-              detail: this.formEvaluation.detail,
-              photos: this.photoPreviews,
-              date: new Date().toISOString(),
-            };
-            this.reviews.unshift(newReview);
-          })
-          .catch((error) => {
-            console.error("Lỗi khi gửi đánh giá:", error);
-          });
-      }
-    },
-    editReview(review) {
-      this.editingReview = review;
-      this.formEvaluation.id_food = review.id_food;
-      this.formEvaluation.detail = review.detail;
-      this.formEvaluation.id_customer = review.id_customer; // Cập nhật id_customer khi chỉnh sửa
-      this.rating = review.rating;
-      this.photoPreviews = review.photos || [];
-    },
-    deleteReview(index) {
-      const review = this.reviews[index];
-      if (confirm("Bạn có chắc muốn xóa đánh giá này?")) {
-        api.delete(`/client/rates/delete/${review.id}`)
-
-          .then(() => {
-            this.reviews.splice(index, 1);
-            alert("Đánh giá đã được xóa.");
-          })
-          .catch((error) => {
-            console.error("Lỗi khi xóa đánh giá:", error);
-            alert("Không thể xóa đánh giá. Vui lòng thử lại sau.");
-          });
-      }
-    },
-    formattedDate(dateStr) {
-      const date = new Date(dateStr);
-      return date.toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
+  } else {
+    api
+      .post("/client/rates/create", formData)
+      .then((response) => {
+        const newReview = {
+          id: response.data.data.id,
+          rating: rating.value,
+          detail: formEvaluation.detail,
+          photos: photoPreviews.value,
+          date: new Date().toISOString(),
+          id_food: formEvaluation.id_food,
+          id_customer: formEvaluation.id_customer,
+        };
+        reviews.value.unshift(newReview);
+        saveReviewsToLocalStorage();
+        resetForm();
+      })
+      .catch((error) => {
+        console.error("Lỗi khi gửi đánh giá:", error);
       });
-    },
-    resetForm() {
-      this.rating = 0;
-      this.formEvaluation.id_food = "";
-      this.formEvaluation.detail = "";
-      this.formEvaluation.id_customer = "1"; // Đặt lại id_customer khi reset form
-      this.photoFiles = [];
-      this.photoPreviews = [];
-      this.editingReview = null;
-    },
-  },
-};
+  }
+}
+
+function editReview(review) {
+  editingReview.value = review;
+  formEvaluation.id_food = review.id_food;
+  formEvaluation.detail = review.detail;
+  formEvaluation.id_customer = review.id_customer;
+  rating.value = review.rating;
+  photoPreviews.value = review.photos || [];
+  photoFiles.value = [];
+}
+
+function deleteReview(index) {
+  const review = reviews.value[index];
+  if (confirm("Bạn có chắc muốn xóa đánh giá này?")) {
+    api
+      .delete(`/client/rates/delete/${review.id}`)
+      .then(() => {
+        reviews.value.splice(index, 1);
+        saveReviewsToLocalStorage();
+        alert("Đánh giá đã được xóa.");
+      })
+      .catch((error) => {
+        console.error("Lỗi khi xóa đánh giá:", error);
+        alert("Không thể xóa đánh giá. Vui lòng thử lại sau.");
+      });
+  }
+}
+
+function formattedDate(dateStr) {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function resetForm() {
+  rating.value = 0;
+  formEvaluation.id_food = "";
+  formEvaluation.detail = "";
+  formEvaluation.id_customer = "1";
+  photoFiles.value = [];
+  photoPreviews.value = [];
+  editingReview.value = null;
+}
+
+function saveReviewsToLocalStorage() {
+  localStorage.setItem("restaurant_reviews", JSON.stringify(reviews.value));
+}
+
+function loadReviewsFromLocalStorage() {
+  const saved = localStorage.getItem("restaurant_reviews");
+  if (saved) {
+    reviews.value = JSON.parse(saved);
+  }
+}
+
+onMounted(() => {
+  loadReviewsFromLocalStorage();
+});
 </script>
 
 
@@ -336,13 +371,13 @@ body {
   justify-content: center;
   align-items: center;
   width: 100%;
-  background: white;
+  background-color: #143b36;
+
 }
 
 .app-container {
   background: white;
   width: 100%;
-  max-width: 600px;
   height: 90vh;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
   border-radius: 12px;
@@ -518,4 +553,11 @@ textarea:focus {
 .review-actions button:hover {
   background: #3c3cce;
 }
+.col-left{
+  width: 40%;
+}
+.col-right{
+  width: 60%;
+}
+
 </style>

@@ -1,5 +1,8 @@
 <template>
     <div class="auth-container">
+      <div class="back-to-home" @click="goHome">
+      ← Quay lại màn hình chính
+    </div>
       <div class="auth-box">
         <!-- Form đăng nhập -->
         <form @submit.prevent="login" class="form" novalidate>
@@ -64,6 +67,9 @@
   const loginEmail = ref('')
   const loginPassword = ref('')
   
+  const goHome =()=>{
+    router.push({name:'users-home'})
+  }
   function login() {
   api.post('/client/login', {
     email: loginEmail.value,
@@ -78,10 +84,6 @@
     }).then(() => {
       // Lưu token sau khi đăng nhập thành công
       localStorage.setItem('auth_token', response.data.token);
-    // 👈 Lưu ID người dùng để sau này lấy thông tin
-
-
-      // Chuyển hướng tới trang home
       router.push({ name: 'users-home' });
       localStorage.setItem('customerId', response.data.customer.id); //dsdsad
     });
@@ -97,9 +99,27 @@
   });
 }
   
-  function forgotPassword() {
-    alert("Quên mật khẩu? Chức năng này chưa được triển khai.");
+function forgotPassword() {
+  if (!loginEmail.value) {
+    Swal.fire('Vui lòng nhập email trước!', '', 'warning')
+    return
   }
+
+  api.post('/client/forgot-password', { email: loginEmail.value })
+    .then((res) => {
+      console.log(' API response:', res)
+      Swal.fire('Thành công!', res.data.message, 'success')
+        .then(() => {
+          router.push({ name: 'users-reset-password', query: { email: loginEmail.value } })
+        })
+    })
+    .catch((err) => {
+      console.error(' Lỗi API:', err)
+      Swal.fire('Lỗi!', err.response?.data?.message || 'Có lỗi xảy ra.', 'error')
+    })
+}
+
+
   
   function loginWithMicrosoft() {
     alert("Đăng nhập với Microsoft đang được triển khai.");
@@ -272,4 +292,21 @@ input:focus {
         font-size: 0.85rem;
     }
 }
+.back-to-home {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  color: #d69c52;
+  font-weight: bold;
+  cursor: pointer;
+  user-select: none;
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+  transition: color 0.3s ease;
+}
+
+.back-to-home:hover {
+  color: #c58a3c;
+  text-decoration: underline;
+}
+
 </style>

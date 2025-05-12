@@ -8,7 +8,7 @@
         <li>
           <router-link class="router-home" :to="{ name: 'users-home' }"><strong>HOME</strong></router-link>
         </li>
-        <li class="introduce">
+        <li class="servicefood">
           <!-- cach 1 -->
           <!-- <router-link class="router-introduce" to="/introduce" >INTRODUCE</router-link>  -->
           <!-- cach 2 -->
@@ -16,10 +16,7 @@
 
 
         </li>
-        <li class="servicefood">
-          <a href="">SERVICE FOOD</a>
-
-        </li>
+     
         <li class="servicefood">
           <a href="">SERVICE FOOD</a>
           <ul class="name-menu">
@@ -121,7 +118,22 @@
       <i class="fa-solid fa-cart-shopping"></i>
       <span class="cart-count" v-if="cartCount > 0">{{ cartCount }}</span>
     </router-link>
+    
   </div>
+
+
+
+</li>
+<li>
+    <div class="cart-user">
+  <i v-if="!userEmail" class="fa-solid fa-user"></i>
+  <span v-else class="user-email">{{ userEmail }}</span>
+
+  <div class="user-info">
+    <router-link v-if="!userEmail" :to="{ name: 'users-login' }">Đăng nhập</router-link>
+    <button v-else @click="logout">Đăng xuất</button>
+  </div>
+</div>
 </li>
 
           <li>
@@ -153,11 +165,19 @@
       Account
     </router-link>
   </div>
-
+  <div class="menu-item">
+    <i class="fa-solid fa-ranking-star"></i>
+    <router-link :to="{ name: 'users-rank' }">
+      rank
+    </router-link>
+  </div>
+<router-link :to="{name :'users-evaluation'}">
   <div class="menu-item">
     <i class="fa-solid fa-gear"></i>
-    <h2>Setting</h2>
+    <h2>Rates</h2>
   </div>
+</router-link>
+
   <router-link :to="{name:'History'}" class="menu-item">
   <i class="fa-solid fa-wrench"></i>
   <h2>History</h2>
@@ -232,6 +252,7 @@ watch(tuKhoa, (newVal) => {
       monTimDuoc.value = [];
     });
 });
+
 const handleLogout = async () => {
   const result = await Swal.fire({
     title: 'Bạn có chắc chắn muốn đăng xuất không?',
@@ -242,17 +263,34 @@ const handleLogout = async () => {
   });
 
   if (result.isConfirmed) {
-    Swal.fire({
-      title: 'Đăng xuất thành công!',
-      text: 'Bạn đã đăng xuất khỏi tài khoản.',
-      icon: 'success',
-      confirmButtonText: 'OK'
-    });
+    try {
+      const response = await api.post('/client/logout'); 
 
-    localStorage.removeItem('users-login');
-    router.push('/login');
+      if (response.data.message === 'Đăng xuất thành công') {
+        Swal.fire({
+          title: 'Đăng xuất thành công!',
+          text: 'Bạn đã đăng xuất khỏi tài khoản.',
+          icon: 'success',
+          confirmButtonText: 'OK'
+        });
+
+        localStorage.removeItem('users-login');
+        sessionStorage.removeItem('users-login'); 
+
+        router.push('/login');
+      }
+    } catch (error) {
+      console.error('Lỗi đăng xuất:', error);
+      Swal.fire({
+        title: 'Chưa đăng nhập mà đòi đăng xuất má ?!',
+        text: 'Có lỗi xảy ra khi đăng xuất. Vui lòng thử lại.',
+        icon: 'error',
+        confirmButtonText: 'OK'
+      });
+    }
   }
 };
+
 
 
 
@@ -360,6 +398,79 @@ const handleLogout = async () => {
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
 }
 
+.cart-user {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
 
+.cart-user i,
+.cart-user .user-email {
+  font-size: 18px;
+  color: #333;
+  padding: 5px 10px;
+}
+
+/* Menu đăng nhập / đăng xuất */
+.user-info {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: #fff;
+  padding: 10px 15px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  display: none;
+  z-index: 999;
+  white-space: nowrap;
+}
+
+/* Hiện menu khi hover vào .cart-user */
+.cart-user:hover .user-info {
+  display: block;
+}
+
+.user-info a,
+.user-info button {
+  display: block;
+  color: #333;
+  text-decoration: none;
+  background: none;
+  border: none;
+  padding: 6px 0;
+  font-size: 14px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.user-info a:hover,
+.user-info button:hover {
+  color: #d69c52;
+}
+
+.servicefood > a {
+  position: relative;
+  display: inline-block;
+  text-decoration: none;
+}
+
+.servicefood > a::after {
+  content: "";
+  position: absolute;
+  bottom: -6px; 
+  left: 50%;
+  width: 0;
+  height: 3px;   
+  background-color: yellow;
+  transition: width 0.3s ease, left 0.3s ease;
+  transform: translateX(-50%);
+  
+}
+
+.servicefood > a:hover::after {
+  width: 100%;
+  left: 50%;
+}
 
 </style>

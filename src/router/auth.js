@@ -8,6 +8,11 @@ const authRoutes = [
       path: "/login",
       name: "users-login",
       component: () => import("../pages/loginclient/login.vue"),
+    },
+    {
+      path: "/reset-password",
+      name: "users-reset-password",
+      component: () => import("../pages/loginclient/resetPassword.vue"),
     }
   ];
   

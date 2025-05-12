@@ -21,23 +21,24 @@
           <div class="main-content">
             <div class="row">
               <div class="row-col-left">
-                <label for="id_table">Bàn số</label>
-                <input type="number" id="id_table" v-model="form.id_table" placeholder="Nhập số bàn" />
+                <label for="fullname">Họ và tên</label>
+                <input type="text" id="fullname" v-model="form.fullname" placeholder="Nhập họ và tên" />
 
-                <label for="timeEnd">Thời gian kết thúc</label>
-                <input type="datetime-local" id="timeEnd" v-model="form.timeEnd" />
-
-                <label for="total">Tổng tiền</label>
-                <input type="number" id="total" v-model="form.total" placeholder="Nhập tổng tiền" />
+                <label for="email">Email</label>
+                <input type="email" id="email" v-model="form.email" placeholder="Nhập email" />
+                <label for="email">id table</label>
+                <input type="number" id="" v-model="form.id_table" placeholder="Nhập " />
+                <label for="email">Total</label>
+                <input type="number" id="" v-model="form.total" placeholder="Nhập " />
 
                 <label for="id_user">Người tạo đơn (ID user)</label>
                 <input type="number" id="id_user" v-model="form.id_user" placeholder="Nhập ID người dùng" />
 
                 <label for="id_customer">Khách hàng (ID)</label>
                 <input type="number" id="id_customer" v-model="form.id_customer" placeholder="Nhập ID khách hàng" />
-                <label for="id_sale">Mã giảm giá (ID Sale)</label>
-<input type="number" id="id_sale" v-model="form.id_sale" placeholder="Nhập mã giảm giá" />
 
+                <label for="id_sale">Mã giảm giá (ID Sale)</label>
+                <input type="number" id="id_sale" v-model="form.id_sale" placeholder="Nhập mã giảm giá" />
               </div>
 
               <div class="row-col-right">
@@ -67,16 +68,16 @@
             </div>
           </div>
         </div>
-      </div>
+      </div> <!-- end col-left -->
+
       <div class="col-right">
-        Bạn chưa có mặt hàng nào
         <div class="order-cart" v-if="!paymentSuccessful">
           <h3 class="order-title"><strong>Đơn Hàng Của Bạn</strong></h3>
 
           <div v-if="cartItems.length === 0">Chưa có mặt hàng nào</div>
           <div v-else>
             <ul>
-              <li class="order-item" v-for="(item, index) in cartItems" :key="item.id">
+              <li class="order-item" v-for="item in cartItems" :key="item.id">
                 <div class="item-col info">
                   <img :src="item.hinh" alt="" />
                   <span>{{ item.ten }}</span>
@@ -85,7 +86,7 @@
                 <div class="item-col quantity">x{{ item.soLuong }}</div>
                 <div class="item-col total">
                   {{ item.gia * item.soLuong }}₫
-                  <button class="btn-delete" @click="xoaHang(index)">Xóa</button>
+                  <button class="btn-delete" @click="xoaHang(item.id)">Xóa</button>
                 </div>
               </li>
             </ul>
@@ -95,25 +96,28 @@
             </div>
           </div>
         </div>
-      </div>
+      </div> <!-- end col-right -->
     </div>
   </div>
 </template>
 
+
+
 <script setup>
-import { ref } from 'vue'
+import { reactive, ref } from 'vue'
 import api from '../../services/api'
 import { cartItems } from '../../stores/cartStore'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const form = ref({
+  fullname: '',
+  email: '',
   id_table: '',
-  timeEnd: '',
   total: '',
   id_user: '',
   id_customer: '',
-  id_sale :''
+  id_sale: ''
 })
 
 const selectedPayment = ref('')
@@ -123,23 +127,22 @@ const namePay = [
 ]
 const paymentSuccessful = ref(false)
 
-const xoaHang = (index) => {
-  cartItems.splice(index, 1)
-}
+
 
 const datMon = async () => {
-  if (!form.value.id_table || !form.value.timeEnd ||!form.value.id_sale|| !form.value.total || !form.value.id_user || !form.value.id_customer || !selectedPayment.value) {
+  if (!form.value.fullname || !form.value.email || !form.value.id_user || !form.value.id_customer || !selectedPayment.value) {
     alert("Vui lòng nhập đầy đủ thông tin!");
     return;
   }
 
   const payload = {
-    id_table: form.value.id_table,
-    timeEnd: form.value.timeEnd,
-    total: form.value.total,
+    fullname: form.value.fullname,
+    email: form.value.email,
     id_user: form.value.id_user,
+    id_table: form.value.id_table,
+  total: form.value.total,
     id_customer: form.value.id_customer,
-    id_sale :form.value.id_sale,
+    id_sale: form.value.id_sale,
     payment_method: selectedPayment.value,
     items: cartItems.value.map(item => ({
       id_product: item.id,
@@ -149,18 +152,24 @@ const datMon = async () => {
   };
 
   try {
-    const response = await api.post('/admin/invoices/create', payload)
+    const response = await api.post('/client/invoices/create', payload)
     console.log('Invoice created successfully:', response.data);
     paymentSuccessful.value = true;
     alert('Thanh toán thành công');
   } catch (error) {
-    if (error.response) {
-      console.error('Error response:', error.response);
-      alert('Có lỗi xảy ra khi tạo hóa đơn, vui lòng kiểm tra lại.');
-    } else {
-      console.error('Error:', error.message);
-      alert('Có lỗi xảy ra khi thanh toán.');
+    console.error('Lỗi:', error)
+    alert('Có lỗi xảy ra khi thanh toán.')
+  }
+}
+async function xoaHang(id) {
+  try {
+    await api.delete(`/client/carts/${id}`); // Gửi yêu cầu xóa món từ giỏ hàng
+    const index = cartItems.value.findIndex(item => item.id === id);// id chứ k phải id_food
+    if (index !== -1) {
+      cartItems.value.splice(index, 1); // Xóa món khỏi giỏ
     }
+  } catch (error) {
+    console.error("Không thể xóa mzón khỏi giỏ hàng", error);
   }
 }
 </script>

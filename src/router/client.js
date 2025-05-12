@@ -63,6 +63,11 @@ const users = [
                 name: 'History',
                 component: () => import('../pages/client/bookinghistory.vue')
               },
+              {
+                path: '/rank',
+                name: 'users-rank',
+                component: () => import('../pages/client/rank.vue')
+              },
             //   {
             //     path: '/register',
             //     name: 'users-register',

@@ -8,21 +8,22 @@
                 </strong>
             </p>
         </div>
-    <div class="card-food">
-      <ul class="list-food">
-        <li v-for="(item, index) in danhSachDanhMuc" :key="index">
-          <a href="">
-            <div class="food-item">
-              <img :src="item.hinh" :alt="item.ten" />
-              <div class="food-info">
-                <div class="name-food"><strong>{{ item.ten }}</strong></div>
-                <p class="detail">Bảng giá chi tiết cho từng món</p>
-              </div>
-            </div>
-          </a>
-        </li>
-      </ul>
-    </div>
+        <div class="card-food">
+  <ul class="list-food">
+    <li v-for="(item, index) in danhSachDanhMuc" :key="index">
+      <router-link :to="{name :'users-category'}"> <!-- Thay đổi đường dẫn ở đây -->
+        <div class="food-item">
+          <img :src="item.hinh" :alt="item.ten" />
+          <div class="food-info">
+            <div class="name-food"><strong>{{ item.ten }}</strong></div>
+            <p class="detail">Bảng giá chi tiết cho từng món</p>
+          </div>
+        </div>
+      </router-link>
+    </li>
+  </ul>
+</div>
+
 
     <div class="title">
       <p>
@@ -120,11 +121,14 @@
   <!-- Phần tin tức  -->
  <div class="menu-list">
   <div v-for="(mon, index) in danhSachMonHienTai" :key="index" class="menu-card">
-    <img :src="mon.hinh" alt="" />
+    <router-link :to="{name :'users-news'}">
+      <img :src="mon.hinh" alt="" />
     <div class="menu-info">
       <h3>{{ mon.ten }}</h3>
       <p>{{ mon.noiDung }}</p>
     </div>
+    </router-link>
+   
   </div>
 </div>
 <div style="text-align: center; ">
